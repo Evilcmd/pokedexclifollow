@@ -15,6 +15,21 @@ func (c *Client) ListLocationAreas(alturl *string) (LocationAreaDefn, error) {
 		fullurl = *alturl
 	}
 
+	body, ok := c.cache.Get(fullurl)
+	if ok {
+		fmt.Println("Cache Hit")
+		LocationAreaRes := LocationAreaDefn{}
+		err := json.Unmarshal(body, &LocationAreaRes)
+
+		if err != nil {
+			return LocationAreaDefn{}, err
+		}
+
+		return LocationAreaRes, nil
+	}
+
+	fmt.Println("Cache Miss")
+
 	// creates a request but not sent yet
 	req, err := http.NewRequest("GET", fullurl, nil)
 
@@ -34,7 +49,7 @@ func (c *Client) ListLocationAreas(alturl *string) (LocationAreaDefn, error) {
 		return LocationAreaDefn{}, fmt.Errorf("error: returned with staus code %v", res.StatusCode)
 	}
 
-	body, err := io.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	if err != nil {
 		return LocationAreaDefn{}, err
 	}
@@ -45,6 +60,8 @@ func (c *Client) ListLocationAreas(alturl *string) (LocationAreaDefn, error) {
 	if err != nil {
 		return LocationAreaDefn{}, err
 	}
+
+	c.cache.Add(fullurl, body)
 
 	return LocationAreaRes, nil
 
